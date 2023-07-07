@@ -1,6 +1,6 @@
 # PythonConnect4
 
-This is a text-based Connect 4 game implemented in Python. It allows a human player to play against an intelligent AI opponent. The AI utilizes advanced algorithms to analyze the game state and make optimal moves, prioritizing winning moves while blocking the human player's three-in-a-row scenarios.
+This is a text-based Connect 4 game implemented in Python. It allows a human player to play against an intelligent AI opponent. The AI utilizes advanced algorithms to analyze the game state and make optimal moves, prioritizing winning moves while blocking the human player's two and three-in-a-row scenarios.
 
 ## Features:
 
