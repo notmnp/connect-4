@@ -12,5 +12,4 @@ This is a text-based Connect 4 game implemented in Python. It allows a human pla
 
 **Hall of Fame:** The program keeps track of previous winners and displays them to the user, adding a competitive element to the game.
 
-_Feel free to modify and enhance the project as per your needs. Enjoy playing Connect 4!
-_
+###_Feel free to modify and enhance the project as per your needs. Enjoy playing Connect 4!_
