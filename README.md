@@ -8,9 +8,9 @@ This is a text-based Connect 4 game implemented in Python. It allows a human pla
 
 **Intelligent AI Opponent:** The AI opponent employs smart decision-making techniques to make strategic moves. It maximizes its chances of winning by setting up winning opportunities and preventing the human player from achieving two or three-in-a-row scenarios.
 
-**Game Result Determination:** At the end of the game, the program determines the winner or declares a stalemate based on the game board. It 
-provides clear feedback on the moves made by both the human player and the AI.
+**Game Result Determination:** At the end of the game, the program determines the winner or declares a stalemate based on the game board. It provides clear feedback on the moves made by both the human player and the AI.
 
 **Hall of Fame:** The program keeps track of previous winners and displays them to the user, adding a competitive element to the game.
-Feel free to modify and enhance the project as per your needs. Enjoy playing Connect 4!
 
+_Feel free to modify and enhance the project as per your needs. Enjoy playing Connect 4!
+_
