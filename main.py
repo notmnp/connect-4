@@ -1,24 +1,18 @@
-""" Name: Milan Pattni
-Date: July 18th, 2022
-Description: Design and implement a (text based) Connect Four 
-game in Python where a human player plays against the computer.
-"""
-
 import random
 import time
+import math
 
-# VERSION 8.2
-# notes: condensed the almost_won function, and combined the prevent_three and smart_move functions
+# VERSION 10 UPDATE!!!!
+# notes: implemented minimax algorith to make this better
 # additional: added comments and docstrings
 
+AI_PLAYER = 'O'
+HUMAN_PLAYER = 'X'
+EMPTY = " "
+DEPTH = 4
 
 def display_board(board, rownum, colnum):
-
-    """ purpose: display the board in a visually appealing format - taking into account the number of rows and columns
-    parameters: the nested board lists, the number of rows, and the number of columns
-    return values: none
-    """
-
+    """ display the board in a visually appealing format """
     print()
     # print board according to selected number of rows and columns
     for i in range(1, colnum+1):
@@ -34,211 +28,135 @@ def display_board(board, rownum, colnum):
             print("\n└───┴" + "───┴" * (colnum-2) + "───┘")
     print()
 
-
 def make_user_move(board, rownum, colnum):
-
-    """ purpose: ask the user for their next move, being what column they want to choose
-    parameters: nested board lists, number of rows, number of columns
-    return values: none
-    """
-
+    """ ask the user for their next move """
     valid_move = False
-    rowcount = 0
     # have user select a column in a set range, if column doesn't exist or is full: have them try again
     while not valid_move:
         col = input("What column would you like to move to (1-" + str(colnum) + "): ")
         try:
-            if 1 <= int(col) <= colnum:
+            col = int(col)
+            if 1 <= col <= colnum:
                 for row in range(rownum, 0, -1):
-                    rowcount += 1
-                    if board[row][int(col)] == " ":
-                        board[row][int(col)] = 'X'
+                    if board[row][col] == EMPTY:
+                        board[row][col] = HUMAN_PLAYER
                         valid_move = True
                         break
-                    elif rowcount == rownum:
-                        print("This column is full. Please try again!\n")
+                if not valid_move:
+                    print("This column is full. Try again!")
             else:
-                print("Sorry, invalid column. Please try again!\n")
+                print("Invalid column. Try again!")
         except ValueError:
-            print("Please enter a number.\n")
+            print("Please enter a number.")
 
+def get_valid_moves(board, rownum, colnum):
+    """ returns a list of valid columns where a move can be made """
+    return [col for col in range(1, colnum + 1) if board[1][col] == EMPTY]
+
+def evaluate_window(window):
+    """ assigns a score to a given window of four spaces """
+    score = 0
+    if window.count(AI_PLAYER) == 4:
+        score += 100
+    elif window.count(AI_PLAYER) == 3 and window.count(EMPTY) == 1:
+        score += 10
+    elif window.count(AI_PLAYER) == 2 and window.count(EMPTY) == 2:
+        score += 5
+    if window.count(HUMAN_PLAYER) == 3 and window.count(EMPTY) == 1:
+        score -= 50  # Higher penalty for allowing the human to win
+    elif window.count(HUMAN_PLAYER) == 4:
+        score -= 100
+    return score
+
+def evaluate_board(board, rownum, colnum):
+    """ evaluates the board to determine how favourable a move is for the computer """
+    score = 0
+    # check rows, columns, and diagonals to see if there are possible winning lines
+    for row in range(1, rownum + 1):
+        for col in range(1, colnum - 2):
+            window = [board[row][col + i] for i in range(4) if col + i <= colnum]
+            score += evaluate_window(window)
+    for col in range(1, colnum + 1):
+        for row in range(1, rownum - 2):
+            window = [board[row + i][col] for i in range(4) if row + i <= rownum]
+            score += evaluate_window(window)
+    for row in range(1, rownum - 2):
+        for col in range(1, colnum - 2):
+            window = [board[row + i][col + i] for i in range(4) if row + i <= rownum and col + i <= colnum]
+            score += evaluate_window(window)
+    for row in range(4, rownum + 1):
+        for col in range(1, colnum - 2):
+            window = [board[row - i][col + i] for i in range(4) if row - i > 0 and col + i <= colnum]
+            score += evaluate_window(window)
+    return score
+
+def minimax(board, depth, alpha, beta, maximizing_player, rownum, colnum):
+    """ minimax algorithm with alpha-beta pruning """
+    valid_moves = get_valid_moves(board, rownum, colnum)
+    is_terminal = winner(board, rownum, colnum) or len(valid_moves) == 0
+
+    if depth == 0 or is_terminal:
+        if winner(board, rownum, colnum) == AI_PLAYER:
+            return (None, 1000000)
+        elif winner(board, rownum, colnum) == HUMAN_PLAYER:
+            return (None, -1000000)
+        else:
+            return (None, evaluate_board(board, rownum, colnum))
+
+    if maximizing_player:
+        max_eval = -math.inf
+        best_col = random.choice(valid_moves)
+
+        for col in valid_moves:
+            row = max([r for r in range(1, rownum + 1) if board[r][col] == EMPTY])
+            board[row][col] = AI_PLAYER
+            _, score = minimax(board, depth - 1, alpha, beta, False, rownum, colnum)
+            board[row][col] = EMPTY
+
+            if score > max_eval:
+                max_eval = score
+                best_col = col
+
+            alpha = max(alpha, score)
+            if beta <= alpha:
+                break
+
+        return best_col, max_eval
+
+    else:
+        min_eval = math.inf
+        best_col = random.choice(valid_moves)
+
+        for col in valid_moves:
+            row = max([r for r in range(1, rownum + 1) if board[r][col] == EMPTY])
+            board[row][col] = HUMAN_PLAYER
+            _, score = minimax(board, depth - 1, alpha, beta, True, rownum, colnum)
+            board[row][col] = EMPTY
+
+            if score < min_eval:
+                min_eval = score
+                best_col = col
+
+            beta = min(beta, score)
+            if beta <= alpha:
+                break
+
+        return best_col, min_eval
 
 def make_computer_move(board, rownum, colnum):
+    """ Uses minimax algorithm to determine the best move for the computer """
+    depth = DEPTH  # depth limit for minimax search
+    col, _ = minimax(board, depth, -math.inf, math.inf, True, rownum, colnum)
 
-    """ purpose: automated computer decision regarding what column to play, considering all possible scenarios
-    parameters: nested board lists, number of rows, number of columns
-    return values: none
-    """
+    for row in range(rownum, 0, -1):
+        if board[row][col] == EMPTY:
+            board[row][col] = AI_PLAYER
+            break
 
-    valid_move = False
-    rowcount = 0
-    # prioritize almost won scenario - computer will always get 4 in a row, or block 3 first, if possible
-    if almost_won(board, rownum, colnum):
-        try:
-            row, column = almost_won(board, rownum, colnum)
-            print("I Chose Column", column)
-            print("Almost Won Algorithm")
-            board[row][column] = 'O'
-        except ValueError:
-            pass
-    # if there is no 3 in a row scenarios, computer will either block 2 in a row, or get 3 in a row, if possible
-    elif prevent_three(board, rownum, colnum):
-        try:
-            row, column, letter = prevent_three(board, rownum, colnum)
-            print("I Chose Column", column)
-            if letter == "X":
-                print("Prevent Three Algorithm")
-            elif letter == "O":
-                print("Smart Move Algorithm")
-            board[row][column] = 'O'
-        except ValueError:
-            pass
-    # if there are no algorithmic moves possible, computer will select a random column, if full, will select another
-    else:
-        random_count = 1
-        while not valid_move:
-            col = random.randrange(1, colnum + 1)
-            for row in range(rownum, 0, -1):
-                rowcount += 1
-                if board[row][col] == " ":
-                    board[row][col] = 'O'
-                    # if selecting a column randomly leads to an almost won scenario (either way), will select again
-                    # computer will only select the column (almost win scenario) if it's the only column left
-                    if not almost_won(board, rownum, colnum) or (random_count > 6):
-                        print("I Chose Column", col)
-                        print("Random Move Algorithm")
-                        valid_move = True
-                        break
-                    else:
-                        board[row][col] = " "
-                        random_count += 1
-                        valid_move = False
-                        break
-                elif rowcount == rownum:
-                    pass
-
-
-def almost_won(board, rownum, colnum):
-
-    """ purpose: scans the board for all possible 4 in a row situations, allowing the computer to make an educated move
-    parameters: nested board lists, number of rows, number of columns
-    return values: a place on the board (row and column)
-    """
-
-    # check for O's first, then X's (prioritize computer win rather than user block)
-    for iteration in range(2):
-        if iteration == 0:
-            letter = "O"
-        elif iteration == 1:
-            letter = "X"
-        # check the rows for 3 in a row, or any space between 4 in a row
-        for row in range(1, rownum + 1):
-            for column in range(1, colnum - 2):
-                if (board[row][column] == board[row][column + 1] == board[row][column + 2] == letter) and (board[row][column + 3] == " ") and (row == rownum or board[row + 1][column + 3] != " "):
-                    return row, column + 3
-                elif (board[row][column] == board[row][column + 1] == board[row][column + 3]) and (board[row][column] == letter) and (board[row][column + 2] == " ") and (row == rownum or board[row + 1][column + 2] != " "):
-                    return row, column + 2
-            for column in range(colnum, 3, -1):
-                if (board[row][column] == board[row][column - 1] == board[row][column - 2] == letter) and (board[row][column - 3] == " ") and (row == rownum or board[row + 1][column - 3] != " "):
-                    return row, column - 3
-                elif (board[row][column] == board[row][column - 1] == board[row][column - 3] == letter) and (board[row][column - 2] == " ") and (row == rownum or board[row + 1][column - 2] != " "):
-                    return row, column - 2
-        # check the columns for 3 in a row
-        for column in range(1, colnum + 1):
-            for row in range(rownum, 3, -1):
-                if (board[row][column] == board[row - 1][column] == board[row - 2][column] == letter) and (board[row - 3][column] == " "):
-                    return row - 3, column
-        # check diagonal left and right upwards for 3 in a row, or any space between 4 in a row
-        for row in range(rownum, 3, -1):
-            for column in range(1, colnum - 2):
-                if (board[row][column] == board[row - 1][column + 1] == board[row - 2][column + 2] == letter) and (board[row - 3][column + 3] == " ") and (board[row - 2][column + 3] != " "):
-                    return row - 3, column + 3
-                elif (board[row][column] == board[row - 1][column + 1] == board[row - 3][column + 3] == letter) and (board[row - 2][column + 2] == " ") and (board[row - 1][column + 2] != " "):
-                    return row - 2, column + 2
-            for column in range(colnum, 3, -1):
-                if (board[row][column] == board[row - 1][column - 1] == board[row - 2][column - 2] == letter) and (board[row - 3][column - 3] == " ") and (board[row - 2][column - 3] != " "):
-                    return row - 3, column - 3
-                elif (board[row][column] == board[row - 1][column - 1] == board[row - 3][column - 3] == letter) and (board[row - 2][column - 2] == " ") and (board[row - 1][column - 2] != " "):
-                    return row - 2, column - 2
-        # check diagonal left and right downwards for 3 in a row, or any space between 4 in a row
-        for row in range(1, rownum - 2):
-            for column in range(1, colnum - 2):
-                if (board[row][column] == board[row + 1][column + 1] == board[row + 2][column + 2] == letter) and (board[row + 3][column + 3] == " ") and (row == rownum - 3 or board[row + 4][column + 3] != " "):
-                    return row + 3, column + 3
-                elif (board[row][column] == board[row + 1][column + 1] == board[row + 3][column + 3] == letter) and (board[row + 2][column + 2] == " ") and (board[row + 1][column + 2] != " "):
-                    return row + 2, column + 2
-            for column in range(colnum, 3, -1):
-                if (board[row][column] == board[row + 1][column - 1] == board[row + 2][column - 2] == letter) and (board[row + 3][column - 3] == " ") and (row == rownum - 3 or board[row + 4][column - 3] != " "):
-                    return row + 3, column - 3
-                elif (board[row][column] == board[row + 1][column - 1] == board[row + 3][column - 3] == letter) and (board[row + 2][column - 2] == " ") and (board[row + 1][column - 2] != " "):
-                    return row + 2, column - 2
-
-
-def prevent_three(board, rownum, colnum):
-
-    """ purpose: scans the board for possible 3 in a row scenarios, allowing the computer to make an educated move
-    parameters: nested board lists, number of rows, number of columns
-    return values: a place on the board (row and column)
-    """
-
-    # Check X's first, then O's (prioritize user block, rather than smart move)
-    for iteration in range(2):
-        if iteration == 0:
-            letter = "X"
-            opposite = "O"
-        elif iteration == 1:
-            letter = "O"
-            opposite = "X"
-        # check the rows for 2 in a row
-        for row in range(1, rownum + 1):
-            for column in range(1, colnum - 2):
-                if (board[row][column] == board[row][column + 1] == letter) and (board[row][column + 2] == " ") and (row == rownum or board[row + 1][column + 2] != " ") and (board[row][column + 3] != opposite):
-                    return row, column + 2, letter
-                elif (board[row][column] == board[row][column + 2] == letter) and (board[row][column + 1] == " ") and (row == rownum or board[row + 1][column + 1] != " ") and (board[row][column + 3] != opposite):
-                    return row, column + 1, letter
-            for column in range(colnum, 3, -1):
-                if (board[row][column] == board[row][column - 1] == letter) and (board[row][column - 2] == " ") and (row == rownum or board[row + 1][column - 2] != " ") and (board[row][column - 3] != opposite):
-                    return row, column - 2, letter
-                elif (board[row][column] == board[row][column - 2] == letter) and (board[row][column - 1] == " ") and (row == rownum or board[row + 1][column - 1] != " ") and (board[row][column - 3] != opposite):
-                    return row, column - 1, letter
-        # check diagonal left and right upwards for 2 in a row
-        for row in range(rownum, 3, -1):
-            for column in range(1, colnum - 2):
-                if (board[row][column] == board[row - 1][column + 1] == letter) and (board[row - 2][column + 2] == " ") and (board[row - 1][column + 2] != " "):
-                    return row - 2, column + 2, letter
-                elif (board[row][column] == board[row - 2][column + 2] == letter) and (board[row - 1][column + 1] == " ") and (board[row][column + 1] != " "):
-                    return row - 1, column + 1, letter
-            for column in range(colnum, 3, -1):
-                if (board[row][column] == board[row - 1][column - 1] == letter) and (board[row - 2][column - 2] == " ") and (board[row - 1][column - 2] != " "):
-                    return row - 2, column - 2, letter
-                elif (board[row][column] == board[row - 2][column - 2] == letter) and (board[row - 1][column - 1] == " ") and (board[row][column - 1] != " "):
-                    return row - 1, column - 1, letter
-        # check diagonal left and right downwards for 2 in a row
-        for row in range(1, rownum - 2):
-            for column in range(1, colnum - 1):
-                if (board[row][column] == board[row + 1][column + 1]  == letter) and (board[row + 2][column + 2] == " ") and (row == rownum - 2 or board[row + 3][column + 2] != " "):
-                    return row + 2, column + 2, letter
-                elif (board[row][column] == board[row + 2][column + 2] == letter) and (board[row + 1][column + 1] == " ") and (board[row + 2][column + 1] != " "):
-                    return row + 1, column + 1, letter
-            for column in range(colnum, 3, -1):
-                if (board[row][column] == board[row + 1][column - 1] == letter) and (board[row + 2][column - 2] == " ") and (row == rownum - 2 or board[row + 3][column - 2] != " "):
-                    return row + 2, column - 2, letter
-                elif (board[row][column] == board[row + 2][column - 2] == letter) and (board[row + 1][column - 1] == " ") and (board[row + 2][column - 1] != " "):
-                    return row + 1, column - 1, letter
-        # check the columns for 2 in a row
-        for column in range(1, colnum + 1):
-            for row in range(rownum, 3, -1):
-                if (board[row][column] == board[row - 1][column] == letter) and (board[row - 2][column] == " "):
-                    return row - 2, column, letter
-
+    print("I Chose Column", col)
 
 def winner(board, rownum, colnum):
-
-    """ purpose: checks the board for 4 identical pieces in a row
-    parameters: nested board lists, number of rows, number of columns
-    return values: the value of the winning 4 in a row piece (X or O)
-    """
-
+    """ checks the board for 4 identical pieces in a row """
     # check rows for winner
     for row in range(1, rownum + 1):
         for columns in range(1, colnum - 2):
@@ -260,37 +178,8 @@ def winner(board, rownum, colnum):
             if (board[row][column] == board[row - 1][column - 1] == board[row - 2][column - 2] == board[row - 3][column - 3]) and (board[row][column] != " "):
                 return board[row][column]
 
-
-def prev_winners():
-
-    """ purpose: checks the HallOfFame text file for any text, if it exists, displays the previous winners
-    parameters: none
-    return values: none
-    """
-
-    hof = open("HallOfFame.txt", "r")
-    hof_contents = hof.read()
-    hof.close()
-    name_count = 1
-    # check if HallOfFame.txt has any winners, if so: list them, if not: print message
-    if hof_contents:
-        hof = open("HallOfFame.txt", "r")
-        print("PREVIOUS WINNERS: ")
-        for line in hof:
-            print(str(name_count) + ".", line.strip())
-            name_count += 1
-        hof.close()
-    else:
-        print("No Human Has Ever Beat Me.. mwah-ha-ha-ha!")
-
-
 def game_size():
-
-    """ purpose: asks the user how many rows and columns the board should include
-    parameters: none
-    return values: number of rows, number of columns
-    """
-
+    """ asks the user how many rows and columns the board should include """
     valid_rows = False
     valid_cols = False
     # ask user to input how many rows + columns they would like the board to be (includes exception handling)
@@ -316,35 +205,20 @@ def game_size():
 
 
 def game_results(board, rownum, colnum):
-
-    """ purpose: displays a suitable message based on whether there is a winner, loser or stalemate
-    parameters: nested board lists, number of rows, number of columns
-    return values: none
-    """
-
+    """ displays a suitable message based on whether there is a winner, loser or stalemate """
     # checks the board for a user win, computer win, or a stalemate and displays an appropriate message
-    if winner(board, rownum, colnum) == 'X':
+    if winner(board, rownum, colnum) == HUMAN_PLAYER:
         # if user wins, add their name to the HallOfFame.txt file
         print("YOU WON!")
-        winner_name = input("What is your name (for the record)? ")
-        print("Thank You. ")
-        hof = open("HallOfFame.txt", "a")
-        hof.write(winner_name + "\n")
-    elif winner(board, rownum, colnum) == 'O':
+    elif winner(board, rownum, colnum) == AI_PLAYER:
         print("THE COMPUTER WON!")
     else:
         print("STALEMATE...")
-    print("\nTHE GAME HAS ENDED\n")
+    print()
 
 
 def who_starts():
-
-    """ purpose: asks the user if they would like to make the first move, or let the computer
-    parameters: none
-    return values: whether the user starts or not (users_turn = True or False)
-    """
-
-    # ask user if they would like to make the first move, using exception handling
+    """ asks the user if they would like to make the first move, or let the computer """
     start = input("Would you like to go first (y/n)? ")
     while start not in ["y", "Y", "n", "N"]:
         start = input("Invalid response. Would you like to go first (y/n)? ")
@@ -354,40 +228,42 @@ def who_starts():
         users_turn = False
     return users_turn
 
-
 def main():
-
-    """ purpose: function that combines and orders all other functions in an organized manner
-    parameters: none
-    return values: none
-    """
-
-    prev_winners()
-    rownum, colnum = game_size()
-    free_cells = rownum * colnum
-    users_turn = who_starts()
-    # the following list is what the display_board function uses (each item in each nested list is a board square)
-    # each nested list represents a row, and each item in the lists are the specific column.
-    cf_board = [[" ", " ", " ", " ", " ", " ", " ", " ", " "], [" ", " ", " ", " ", " ", " ", " ", " ", " "],
-                [" ", " ", " ", " ", " ", " ", " ", " ", " "], [" ", " ", " ", " ", " ", " ", " ", " ", " "],
-                [" ", " ", " ", " ", " ", " ", " ", " ", " "], [" ", " ", " ", " ", " ", " ", " ", " ", " "],
-                [" ", " ", " ", " ", " ", " ", " ", " ", " "], [" ", " ", " ", " ", " ", " ", " ", " ", " "],
-                [" ", " ", " ", " ", " ", " ", " ", " ", " "]]
-    # while there is no winner, or the board is not full, the game continues
-    while not winner(cf_board, rownum, colnum) and (free_cells > 0):
+    """ main loop with play again option """
+    while True:
+        rownum, colnum = game_size()
+        free_cells = rownum * colnum
+        users_turn = who_starts()
+        # the following list is what the display_board function uses (each item in each nested list is a board square)
+        # each nested list represents a row, and each item in the lists are the specific column.
+        cf_board = [[" ", " ", " ", " ", " ", " ", " ", " ", " "], [" ", " ", " ", " ", " ", " ", " ", " ", " "],
+                    [" ", " ", " ", " ", " ", " ", " ", " ", " "], [" ", " ", " ", " ", " ", " ", " ", " ", " "],
+                    [" ", " ", " ", " ", " ", " ", " ", " ", " "], [" ", " ", " ", " ", " ", " ", " ", " ", " "],
+                    [" ", " ", " ", " ", " ", " ", " ", " ", " "], [" ", " ", " ", " ", " ", " ", " ", " ", " "],
+                    [" ", " ", " ", " ", " ", " ", " ", " ", " "]]
+        # while there is no winner, or the board is not full, the game continues
+        while not winner(cf_board, rownum, colnum) and (free_cells > 0):
+            display_board(cf_board, rownum, colnum)
+            if users_turn:
+                make_user_move(cf_board, rownum, colnum)
+                users_turn = False
+            else:
+                # add 1-second delay before computer moves.
+                time.sleep(1)
+                make_computer_move(cf_board, rownum, colnum)
+                users_turn = True
+            free_cells -= 1
         display_board(cf_board, rownum, colnum)
-        if users_turn:
-            make_user_move(cf_board, rownum, colnum)
-            users_turn = False
-        else:
-            # add 1-second delay before computer moves.
-            time.sleep(1)
-            make_computer_move(cf_board, rownum, colnum)
-            users_turn = True
-        free_cells -= 1
-    display_board(cf_board, rownum, colnum)
-    game_results(cf_board, rownum, colnum)
+        game_results(cf_board, rownum, colnum)
 
+        # ask if the user wants to play again
+        play_again = input("Would you like to play again? (y/n): ").strip().lower()
+        while play_again not in ['y', 'n']:
+            play_again = input("Invalid response. Would you like to play again? (y/n): ").strip().lower()
+        
+        if play_again == 'n':
+            print("Thanks for playing!")
+            break 
 
 # run the main function
 main()

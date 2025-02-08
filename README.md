@@ -1,15 +1,65 @@
-# PythonConnect4
+# **Python Connect 4 - Minimax AI Implementation**
 
-This is a text-based Connect 4 game implemented in Python. It allows a human player to play against an intelligent AI opponent. The AI utilizes advanced algorithms to analyze the game state and make optimal moves, prioritizing winning moves while blocking the human player's two and three-in-a-row scenarios.
+This is a **text-based Connect 4 game** implemented in Python, featuring an **intelligent AI opponent**. The AI leverages the **Minimax algorithm with Alpha-Beta Pruning** to analyze the game state and make optimal moves. It **prioritizes winning moves** while **blocking the human player's threats**, ensuring a challenging and competitive gameplay experience.
 
-## Features:
+---
 
-**Interactive Gameplay:** The game provides an intuitive user interface that displays the game board. The human player can easily input their moves by selecting the desired column.
+## **🔹 Features:**
 
-**Intelligent AI Opponent:** The AI opponent employs smart decision-making techniques to make strategic moves. It maximizes its chances of winning by setting up winning opportunities and preventing the human player from achieving two or three-in-a-row scenarios.
+### ✅ **Interactive Gameplay**
+- The game presents a **clear and structured UI**, displaying the **current game board** after each move.
+- The human player can **input their moves** by selecting a column number.
+- The AI responds with an **intelligent move**.
 
-**Game Result Determination:** At the end of the game, the program determines the winner or declares a stalemate based on the game board. It provides clear feedback on the moves made by both the human player and the AI.
+### ✅ **Intelligent AI Opponent (Minimax Algorithm)**
+- The AI uses the **Minimax algorithm with Alpha-Beta pruning** to search the best possible move.
+- It **maximizes** its chances of winning while **blocking** the opponent's potential victories.
+- The AI evaluates the board by:
+  - **Prioritizing four-in-a-row wins**.
+  - **Blocking the human's three-in-a-row threats**.
+  - **Maximizing its own board position strategically**.
 
-**Hall of Fame:** The program keeps track of previous winners and displays them to the user, adding a competitive element to the game.
+### ✅ **Game Result Determination**
+- The program **automatically checks for a winner** after each move.
+- If the board is full without a winner, it **declares a stalemate**.
 
-_Feel free to modify and enhance the project as per your needs. Enjoy playing Connect 4 :)_
+### ✅ **Replay Feature**
+- After the game ends, the user can **choose to play again** without restarting the program.
+
+---
+
+## **🔹 Algorithm Implementation**
+### **⚡ Minimax Algorithm with Alpha-Beta Pruning**
+The AI's decision-making is powered by the **Minimax algorithm** with **Alpha-Beta pruning** to improve efficiency.
+
+### **How Minimax Works:**
+1. The algorithm **simulates** all possible future board states up to a certain depth.
+2. It assigns a **score** to each board state based on the **evaluation function**:
+   - **Winning Move:** +1000
+   - **Blocking Opponent's Win:** +100
+   - **Three-in-a-row (AI):** +10
+   - **Three-in-a-row (Human):** -50
+   - **Other strategic placements**.
+3. The AI selects the **move with the highest score**.
+
+### **Optimizations:**
+- **Depth-Limited Search:** The algorithm searches up to **4 moves ahead** for efficiency.
+  - 🔹 *You can modify this by changing the `depth` global variable in the code.*
+- **Alpha-Beta Pruning:** Eliminates unnecessary moves to reduce computation time.
+
+---
+
+## **🔹 How to Play**
+1. **Run the Python script** to start the game.
+2. Choose the **board size**:
+   - **Rows:** Between **5 and 7**.
+   - **Columns:** Between **6 and 8**.
+3. Choose **who starts first** (Human or AI).
+4. The **game board is displayed**, and the player selects a **column** (1-`column count`).
+5. The **AI makes its move**, and the board updates.
+6. The game continues until:
+   - A **player wins** (four in a row).
+   - The **board is full** (stalemate).
+7. The game **announces the result** and asks if you want to **play again**.
+
+---
